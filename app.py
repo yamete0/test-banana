@@ -11,7 +11,7 @@ def init():
     model_name = os.getenv("MODEL_NAME")
     model = whisper.load_model(model_name, device="cuda", in_memory=True)
 
-def _parse_arg(args : str, data : dict, default : None):
+def _parse_arg(args : str, data : dict, default = None):
     arg = data.get(args, None)
     if arg == None:
         if default is None:
