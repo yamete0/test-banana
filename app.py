@@ -27,22 +27,31 @@ def inference(model_inputs:dict) -> dict:
 
     # Parse out your arguments
     try:
-        opusBytesString = _parse_arg("opusBytesString", model_inputs)
-        beam_size = _parse_arg("beam_size", model_inputs, 5)
-        fp16 = _parse_arg("fp16", model_inputs, True)
+        BytesString = _parse_arg("base64String", model_inputs)
+        beam_size = _parse_arg("beam_size", model_inputs, None)
+        best_of = _parse_arg("best_of", model_inputs, 5)
+        audio_type = _parse_arg("audio_type", model_inputs, "opus")
+        temperature = _parse_arg("temperature", model_inputs, (0.0, 0.2, 0.7))
+        if audio_type not in ["opus", "wav", "flac", "mp3", "m4a"]:
+            raise Exception(f"Invalid audio_type: {audio_type}")
 
     except Exception as e:
         return {"error":str(e)}
 
-    print(f"Settings: beam_size={beam_size}, fp16={fp16}")
+    print(f"Settings: beam_size={beam_size}")
     
-    opusBytes = BytesIO(base64.b64decode(opusBytesString.encode("ISO-8859-1")))
-    tmp_file = "input.opus"
+    bytes = BytesIO(base64.b64decode(BytesString.encode("ISO-8859-1")))
+
+    tmp_file = "input."+audio_type
     with open(tmp_file,'wb') as file:
-        file.write(opusBytes.getbuffer())
+        file.write(bytes.getbuffer())
     
     # Run the model
-    result = model.transcribe(tmp_file, fp16=fp16, beam_size=beam_size)
+    result = model.transcribe(tmp_file, fp16=True,
+        temperature=temperature,
+        beam_size=beam_size,
+        best_of=best_of,
+        )
     os.remove(tmp_file)
     # Return the results as a dictionary
     return result
