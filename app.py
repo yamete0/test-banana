@@ -19,6 +19,8 @@ def _parse_arg(args : str, data : dict, default = None):
         else:
             return default
 
+    return arg
+
 # Inference is ran for every server call
 # Reference your preloaded global model variable here.
 def inference(model_inputs:dict) -> dict:
