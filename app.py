@@ -1,4 +1,3 @@
-import torch
 import whisper
 import os
 import base64
@@ -9,7 +8,7 @@ from io import BytesIO
 def init():
     global model
     model_name = os.getenv("MODEL_NAME")
-    model = whisper.load_model(model_name, device="cuda", in_memory=True)
+    model = whisper.load_model(model_name, device="cuda", in_memory=True, fp16=True)
 
 def _parse_arg(args : str, data : dict, default = None):
     arg = data.get(args, None)
@@ -28,19 +27,22 @@ def inference(model_inputs:dict) -> dict:
 
     # Parse out your arguments
     try:
-        mp3BytesString = _parse_arg("mp3BytesString", model_inputs)
+        opusBytesString = _parse_arg("opusBytesString", model_inputs)
         beam_size = _parse_arg("beam_size", model_inputs, 5)
         fp16 = _parse_arg("fp16", model_inputs, True)
 
     except Exception as e:
         return {"error":str(e)}
+
+    print(f"Settings: beam_size={beam_size}, fp16={fp16}")
     
-    mp3Bytes = BytesIO(base64.b64decode(mp3BytesString.encode("ISO-8859-1")))
-    with open('input.mp3','wb') as file:
-        file.write(mp3Bytes.getbuffer())
+    opusBytes = BytesIO(base64.b64decode(opusBytesString.encode("ISO-8859-1")))
+    tmp_file = "input.opus"
+    with open(tmp_file,'wb') as file:
+        file.write(opusBytes.getbuffer())
     
     # Run the model
-    result = model.transcribe("input.mp3", fp16=fp16, beam_size=beam_size)
-    os.remove("input.mp3")
+    result = model.transcribe(tmp_file, fp16=fp16, beam_size=beam_size)
+    os.remove(tmp_file)
     # Return the results as a dictionary
     return result
