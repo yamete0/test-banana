@@ -9,7 +9,7 @@ from io import BytesIO
 def init():
     global model
     
-    model = whisper.load_model("medium", device="cuda", in_memory=True)
+    model = whisper.load_model(os.getenv['MODEL_NAME'], device="cuda", in_memory=True)
 
 def _parse_arg(args : str, data : dict, default : None):
     arg = data.get(args, None)
