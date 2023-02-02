@@ -8,7 +8,8 @@ import torch
 import os
 
 def download_model():
-    model = whisper.load_model(os.getenv['MODEL_NAME'])
+    model_name = os.getenv("MODEL_NAME")
+    model = whisper.load_model(model_name)
 
 if __name__ == "__main__":
     download_model()
