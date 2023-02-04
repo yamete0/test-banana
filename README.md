@@ -1,41 +1,58 @@
-# 🍌 Banana Serverless Whisper Template
+# 🍌 Banana Whisper Medium++
 
-This repo gives a basic framework for serving OpenAI's Whisper in production using simple HTTP servers.
+This is the ultimate production ready deployment of Whisper. It uses a custom build of Whisper, which is based on the latest Whisper release, but with a few modifications to make it run 10-20% faster than the stock whisper, without sacrificing quality of transcription 🤯
 
-If you want to generalize this to deploy anything on Banana, [see the guide here](https://www.notion.so/banana-dev/How-To-Serve-Anything-On-Banana-125a65fc4d30496ba1408de1d64d052a).
+It also has added flexibility, it can accept more parameters than the stock Whisper templates out there:
 
-Look at `test.py` for instructions on how to call this model on locally as well as deployed on banana.
+- `base64String` - The base64 encoded audio file
+- `format` - The format of the audio file. Defaults to `mp3`
+- `kwargs` - A JSON string of additional arguments to pass to whisper.transcribe(). Defaults to `{}`. See the Whisper documentation for more information on the available arguments.
+
+It not only returns the text in the result, but also segment information and language information.
+
+## 🚀 Getting Started
+
+On the client, call the model like so:
+
+```
+import banana_dev as banana
+import ffmpeg
+import base64
+
+# read audio from video/audio and convert to opus with 16k sampling rate, mono channel, 48k bitrate, loglevel error
+
+input_path = "input.mp4"
+
+try:
+  out, _ = (
+      ffmpeg
+      .input(input_path)
+      .output('-', format='opus', acodec='libopus', ac=1, ar='16k', b='48k', loglevel='error')
+      .run(cmd=['ffmpeg', '-nostdin'], capture_stdout=True, capture_stderr=True)
+  )
+except Exception as e:
+  raise RuntimeError(f"Failed to load audio: {e.stderr.decode()}") from e
 
 
-## Move to prod:
+# HERE THE MAGIC HAPPENS
 
-At this point, you have a functioning http server for your ML model. You can use it as is, or package it up with our provided `Dockerfile` and deploy it to your favorite container hosting provider!
+opus_bytes_base64 = base64.b64encode(out).decode("ISO-8859-1")
 
-If Banana is your favorite GPU hosting provider, read on!
+model_inputs = {
+  "base64String": opus_bytes_base64,
+  "format": "opus",
+  "kwargs": {
+    "beam_size": 4,
+    "temperature": [0.0, 0.2, 0.7],
+  }
+}
 
-# 🍌
+api_key = "YOUR_API_KEY"
+model_key = "YOUR_MODEL_KEY"
 
-# Deploy to Banana Serverless:
 
-Three steps:
-1. Create your own copy of this template repo. Either:
-- Click "[Fork](https://github.com/sahil280114/serverless-template-whisper/fork)" (creates a public repo)
-- Click "[Use this Template](https://github.com/sahil280114/serverless-template-whisper/generate)" (creates a private or public repo)
-- Create your own repo and copy the template files into it
+out = banana.run(api_key, model_key, model_inputs)
+result = out["modelOutputs"][0]
 
-2. Login in to the [Banana Dashboard](https://app.banana.dev) and setup your account by saving your payment details and linking your Github.
-
-From then onward, any pushes to the default repo branch (usually "main" or "master") trigger Banana to build and deploy your server, using the Dockerfile.
-Throughout the build we'll sprinkle in some secret sauce to make your server extra snappy 🔥
-
-It'll then be deployed on our Serverless GPU cluster and callable with any of our serverside SDKs:
-
-- [Python](https://github.com/bananaml/banana-python-sdk)
-- [Node JS / Typescript](https://github.com/bananaml/banana-node-sdk)
-- [Go](https://github.com/bananaml/banana-go)
-
-You can monitor buildtime and runtime logs by clicking the logs button in the model view on the Banana Dashboard](https://app.banana.dev)
-
-<br>
-
-## Use Banana for scale.
+# Use the result just as the standard whisper model output
+```
