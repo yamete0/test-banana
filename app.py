@@ -44,7 +44,13 @@ def inference(model_inputs:dict) -> dict:
     
     # Run the model
     result = model.transcribe(tmp_file, fp16=True, **kwargs)
-    result['segments'] = [{x['id'], x['seek'], x['start'], x['end'], x['text']} for x in result['segments']]
+    result['segments'] = [{
+        "id":x['id'],
+        "seek":x['seek'],
+        "start":x['start'],
+        "end":x['end'],
+        "text":x['text']
+        } for x in result['segments']]
     os.remove(tmp_file)
     # Return the results as a dictionary
     return result
