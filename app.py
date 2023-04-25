@@ -13,17 +13,6 @@ def init():
     model = whisper.load_model(model_name, device="cuda", in_memory=True, fp16=True)
 
 
-def _parse_arg(args: str, data: dict, default=None, required=False):
-    arg = data.get(args, None)
-    if arg == None:
-        if required:
-            raise Exception(f"Missing required argument: {args}")
-        else:
-            return default
-
-    return arg
-
-
 def downloadYTaudio(url, start_time, end_time, audio_file):
     # Download audio file
     audio_cmd = f'yt-dlp -f "bestaudio[ext=m4a]" --external-downloader ffmpeg --external-downloader-args "ffmpeg_i:-ss {start_time} -to {end_time}" -o "{audio_file}" "{url}"'
