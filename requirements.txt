@@ -3,3 +3,4 @@ transformers
 accelerate
 openai-whisper @ git+https://github.com/Joemgu7/whisper-light.git
 websockets==10.0
+yt-dlp
