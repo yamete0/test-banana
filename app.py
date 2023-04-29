@@ -24,6 +24,28 @@ def downloadYTaudio(url, start_time, end_time, audio_file):
     )
 
 
+def downloadYTClip(url, start_time, end_time, file_name):
+    # Download audio file
+    cmd = f'yt-dlp -f "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]" --external-downloader ffmpeg --external-downloader-args "ffmpeg_i:-ss {start_time} -to {end_time}" -o "{file_name}" "{url}"'
+    output = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+
+    return (
+        output.returncode,
+        output.stderr,
+    )
+
+
+def exportFFMPEG(file_name, output_file):
+    cmd = f'ffmpeg -hwaccel cuvid -i "{file_name}" -vf "drawtext=text=Hello:x=10:y=10:fontsize=24:fontcolor=white" -c:v h264_nvenc -c:a copy "{output_file}"'
+
+    video_output = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+
+    return (
+        video_output.returncode,
+        video_output.stderr,
+    )
+
+
 # Inference is ran for every server call
 # Reference your preloaded global model variable here.
 def inference(model_inputs: dict) -> dict:
@@ -43,6 +65,27 @@ def inference(model_inputs: dict) -> dict:
     audio_returncode, audio_stderr = downloadYTaudio(
         url, start_time, end_time, audio_file
     )
+
+    file_name = "youtube-clip.mp4"
+
+    returncode, stderr = downloadYTClip(url, start_time, end_time, file_name)
+
+    if returncode != 0:
+        print(f"Error Video Download: {stderr}")
+        return stderr
+
+    output_file = "youtube-output.mp4"
+    video_returncode, video_stderr = exportFFMPEG(file_name, output_file)
+
+    if video_returncode != 0:
+        print(f"Error Export Video: {video_stderr}")
+        return video_stderr
+
+    with open(output_file, "rb") as video_file:
+        video_base64 = base64.b64encode(video_file.read()).decode("utf-8")
+
+    # Remove the video file after encoding
+    os.remove(output_file)
 
     if audio_returncode != 0:
         print(f"Error Audio Download: {audio_stderr}")
