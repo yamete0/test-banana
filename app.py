@@ -36,14 +36,13 @@ def downloadYTClip(url, start_time, end_time, file_name):
     )
 
 
-def encodeFFMPEG(file_name, bottom_file, sound_file, sub_filename, clip_length):
-    output_name = "exportedFFMPEG.mp4"
-
+def encodeFFMPEG(
+    file_name, bottom_file, sound_file, sub_filename, clip_length, output_name
+):
     cmd = f'ffmpeg -i {file_name} -i "{bottom_file}" -i "{sound_file}" -filter_complex "[0:v]scale=-2:880, crop=1080:880:420:0[v0];[1:v]crop=1080:1040:420:0[v1];[v0][v1]vstack=inputs=2,ass=\'{sub_filename}\'[v];[2:a]volume=0.2[a1];[0:a]volume=1.5[a2];[a2][a1]amix=inputs=2[a]" -map [v] -map [a] -c:v libx264 -c:a aac -t {clip_length} -y "{output_name}"'
-    # cmd = f'ffmpeg -hwaccel cuvid -i "{file_name}" -vf "drawtext=text=Hello:x=10:y=10:fontsize=24:fontcolor=white" -c:v h264_nvenc -c:a copy "{output_file}"'
     video_output = subprocess.run(cmd, shell=True, capture_output=True, text=True)
 
-    return (video_output.returncode, video_output.stderr, output_name)
+    return (video_output.returncode, video_output.stderr)
 
 
 def transcribe_whisper(url, start_time, end_time):
@@ -112,8 +111,10 @@ def exportVid(url, start_time, end_time, subtitles):
     with open(sub_filename, "r") as sub_file:
         sub_file.writelines(subtitles)
 
+    output_name = "encodedVideoFFMPEG.mp4"
+
     video_returncode, video_stderr, output_file = encodeFFMPEG(
-        file_name, bottom_file, sound_file, sub_filename, clip_length
+        file_name, bottom_file, sound_file, sub_filename, clip_length, output_name
     )
     if video_returncode != 0:
         error = f"Error Encode Video: {video_stderr}"
