@@ -5,6 +5,12 @@ import base64
 from io import BytesIO
 import datetime
 import random
+from supabase import create_client, Client
+
+
+url: str = "https://nginpaisdlnwgdspewrq.supabase.co"
+key: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5naW5wYWlzZGxud2dkc3Bld3JxIiwicm9sZSI6ImFub24iLCJpYXQiOjE2ODI4NzAxOTQsImV4cCI6MTk5ODQ0NjE5NH0.ahz7Y2PxLIdoWJSxC6iQip9NIVZaL04dwn4OcJTRfno"
+supabase: Client = create_client(url, key)
 
 
 # Init is ran on server startup
@@ -150,6 +156,16 @@ def inference(model_inputs: dict) -> dict:
         return output
     elif type == "transcribe_audio":
         output = transcribe_whisper(url, start_time, end_time)
+
+        data = (
+            supabase.table("users")
+            .update({"waiting_for_promise": True, "promise": output})
+            .eq("auth-key", data["auth-key"])
+            .execute()
+        )
+
+        assert len(data.data) > 0
+
         return output
     else:
         return "invalid type"
