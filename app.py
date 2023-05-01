@@ -5,20 +5,16 @@ import base64
 from io import BytesIO
 import datetime
 import random
-from supabase import create_client, Client
+import psycopg2
+import json
 
 
 # Init is ran on server startup
 # Load your model to GPU as a global variable here using the variable name "model"
 def init():
     global model
-    global supabase
     model_name = os.getenv("MODEL_NAME")
     model = whisper.load_model(model_name, device="cuda", in_memory=True, fp16=True)
-
-    url: str = "https://nginpaisdlnwgdspewrq.supabase.co"
-    key: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5naW5wYWlzZGxud2dkc3Bld3JxIiwicm9sZSI6ImFub24iLCJpYXQiOjE2ODI4NzAxOTQsImV4cCI6MTk5ODQ0NjE5NH0.ahz7Y2PxLIdoWJSxC6iQip9NIVZaL04dwn4OcJTRfno"
-    supabase: Client = create_client(url, key)
 
 
 def downloadYTaudio(url, start_time, end_time, audio_file):
@@ -139,7 +135,6 @@ def exportVid(url, start_time, end_time, subtitles):
 # Inference is ran for every server call
 # Reference your preloaded global model variable here.
 def inference(model_inputs: dict) -> dict:
-    global supabase
     # Access URL from model_inputs dictionary
     url = model_inputs["url"]
 
@@ -151,6 +146,14 @@ def inference(model_inputs: dict) -> dict:
 
     type = model_inputs["type"]
 
+    conn = psycopg2.connect(
+        host="db.nginpaisdlnwgdspewrq.supabase.co",
+        port="5432",
+        database="postgres",
+        user="postgres",
+        password="Re&chele123",
+    )
+
     if type == "export_video":
         subtitles = model_inputs["subtitles_raw"]
         output = exportVid(url, start_time, end_time, subtitles)
@@ -158,14 +161,20 @@ def inference(model_inputs: dict) -> dict:
     elif type == "transcribe_audio":
         output = transcribe_whisper(url, start_time, end_time)
 
-        data = (
-            supabase.table("users")
-            .update({"waiting_for_promise": True, "promise": output})
-            .eq("auth-key", data["auth-key"])
-            .execute()
-        )
+        output_json = json.dumps(output)
+        try:
+            cur = conn.cursor()
 
-        assert len(data.data) > 0
+            query = "UPDATE users SET waiting_for_promise = True, promise = %s WHERE auth-key = %s"
+            cur.execute(query, (output_json, model_inputs["auth-key"]))
+
+            conn.commit()
+        except Exception as e:
+            print("Error updating data:", e)
+            return e
+        finally:
+            cur.close()
+            conn.close()
 
         return output
     else:
