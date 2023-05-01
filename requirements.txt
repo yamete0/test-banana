@@ -4,4 +4,3 @@ accelerate
 openai-whisper @ git+https://github.com/Joemgu7/whisper-light.git
 websockets==9.1
 yt-dlp
-psycopg2

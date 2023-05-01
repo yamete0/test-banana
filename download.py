@@ -4,7 +4,6 @@
 # In this example: A Huggingface BERT model
 
 import whisper
-import psycopg2
 import torch
 import os
 

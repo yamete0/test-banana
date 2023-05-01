@@ -5,7 +5,6 @@ import base64
 from io import BytesIO
 import datetime
 import random
-import psycopg2
 import json
 
 
@@ -146,35 +145,12 @@ def inference(model_inputs: dict) -> dict:
 
     type = model_inputs["type"]
 
-    conn = psycopg2.connect(
-        host="db.nginpaisdlnwgdspewrq.supabase.co",
-        port="5432",
-        database="postgres",
-        user="postgres",
-        password="Re&chele123",
-    )
-
     if type == "export_video":
         subtitles = model_inputs["subtitles_raw"]
         output = exportVid(url, start_time, end_time, subtitles)
         return output
     elif type == "transcribe_audio":
         output = transcribe_whisper(url, start_time, end_time)
-
-        output_json = json.dumps(output)
-        try:
-            cur = conn.cursor()
-
-            query = "UPDATE users SET waiting_for_promise = True, promise = %s WHERE auth-key = %s"
-            cur.execute(query, (output_json, model_inputs["auth-key"]))
-
-            conn.commit()
-        except Exception as e:
-            print("Error updating data:", e)
-            return e
-        finally:
-            cur.close()
-            conn.close()
 
         return output
     else:
