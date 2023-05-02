@@ -10,7 +10,7 @@ import os
 
 def download_model():
     model_name = os.getenv("MODEL_NAME")
-    model = WhisperModel(model_name, compute_type="float16")
+    model = WhisperModel(model_name)
 
 
 if __name__ == "__main__":
