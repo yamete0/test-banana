@@ -1,7 +1,7 @@
 sanic==22.6.2
 transformers
 accelerate
-openai-whisper
+faster-whisper
 websockets==10.0
 psycopg2-binary
 yt-dlp
