@@ -1,4 +1,3 @@
-import whisper
 import os
 import subprocess
 import base64
@@ -18,22 +17,6 @@ def init():
 
     # Run on GPU with FP16
     model = WhisperModel(model_name, device="cuda", compute_type="float16")
-
-    # or run on GPU with INT8
-    # model = WhisperModel(model_size, device="cuda", compute_type="int8_float16")
-    # or run on CPU with INT8
-    # model = WhisperModel(model_size, device="cpu", compute_type="int8")
-
-    segments, info = model.transcribe("audio.mp3", beam_size=5)
-
-    print(
-        "Detected language '%s' with probability %f"
-        % (info.language, info.language_probability)
-    )
-
-    for segment in segments:
-        print("[%.2fs -> %.2fs] %s" % (segment.start, segment.end, segment.text))
-        model = whisper.load_model(model_name, device="cuda", in_memory=True, fp16=True)
 
 
 def downloadYTaudio(url, start_time, end_time, audio_file):
@@ -77,34 +60,56 @@ def transcribe_whisper(url, start_time, end_time):
         print(f"Error Audio Download: {audio_stderr}")
         return audio_stderr
 
-    kwargs = {"beam_size": 5, "temperature": [0, 0.2, 0.4, 0.6, 0.8, 1]}
+    segments, info = model.transcribe(audio_file, beam_size=5)
 
-    # Run the model
-    result = model.transcribe(audio_file, fp16=True, **kwargs)
-    result["segments"] = [
-        {
-            "id": x["id"],
-            "seek": x["seek"],
-            "start": x["start"],
-            "end": x["end"],
-            "text": x["text"],
-        }
-        for x in result["segments"]
-    ]
+    segmentsArr = []
+
+    for seg in segments:
+        segmentsArr.append(
+            {
+                "id": seg.id,
+                "seek": seg.seek,
+                "start": seg.start,
+                "end": seg.end,
+                "text": seg.text,
+                "tokens": seg.tokens,
+                "temperature": seg.temperature,
+                "compression_ratio": seg.compression_ratio,
+                "no_speech_prob": seg.no_speech_prob,
+            }
+        )
 
     # load alignment model and metadata
     model_a, metadata = whisperx.load_align_model(
-        language_code=result["language"], device="cuda"
+        language_code=info.language, device="cuda"
     )
 
     # align whisper output
-    result_aligned = whisperx.align(
-        result["segments"], model_a, metadata, audio_file, "cuda"
-    )
+    result_aligned = whisperx.align(segmentsArr, model_a, metadata, audio_file, "cuda")
 
     os.remove(audio_file)
     # Return the results as a dictionary
-    return result_aligned
+
+    from whisperx.utils import write_ass
+
+    with open("subtitles.ass", "w", encoding="utf-8") as file:
+        write_ass(
+            result_aligned["segments"],
+            file=file,
+            resolution="word",
+            font="Mercadillo Bold",
+            font_size=80,
+            underline=False,
+            xRes="1920",
+            yRes="1080",
+            **{"Bold": "1", "Alignment": "5", "Outline": "6", "Shadow": "6"},
+        )
+
+    with open("subtitles.ass", "rb") as file:
+        contents = file.read()
+        encoded = base64.b64encode(contents).decode("utf-8")
+
+    return encoded
 
 
 def exportVid(url, start_time, end_time, subtitles):

@@ -3,14 +3,14 @@
 
 # In this example: A Huggingface BERT model
 
-import whisper
+from faster_whisper import WhisperModel
 import torch
 import os
 
 
 def download_model():
     model_name = os.getenv("MODEL_NAME")
-    model = whisper.load_model(model_name)
+    model = WhisperModel(model_name, device="cuda", compute_type="float16")
 
 
 if __name__ == "__main__":
