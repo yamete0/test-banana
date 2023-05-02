@@ -1,7 +1,7 @@
 sanic==22.6.2
 transformers
 accelerate
-openai-whisper @ git+https://github.com/Joemgu7/whisper-light.git
+openai-whisper
 websockets==10.0
 psycopg2-binary
 yt-dlp
