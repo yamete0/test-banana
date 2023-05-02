@@ -6,6 +6,7 @@ from io import BytesIO
 import datetime
 import random
 import json
+import whisperx
 
 
 # Init is ran on server startup
@@ -71,9 +72,20 @@ def transcribe_whisper(url, start_time, end_time):
         }
         for x in result["segments"]
     ]
+
+    # load alignment model and metadata
+    model_a, metadata = whisperx.load_align_model(
+        language_code=result["language"], device="cuda"
+    )
+
+    # align whisper output
+    result_aligned = whisperx.align(
+        result["segments"], model_a, metadata, audio_file, "cuda"
+    )
+
     os.remove(audio_file)
     # Return the results as a dictionary
-    return result
+    return result_aligned
 
 
 def exportVid(url, start_time, end_time, subtitles):
