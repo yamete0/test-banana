@@ -16,7 +16,7 @@ def init():
     model_name = os.getenv("MODEL_NAME")
 
     # Run on GPU with FP16
-    model = WhisperModel(model_name, device="cuda", compute_type="float16")
+    model = WhisperModel(model_name, device="cuda", compute_type="float32")
 
 
 def downloadYTaudio(url, start_time, end_time, audio_file):
